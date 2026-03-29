@@ -192,9 +192,9 @@ export default function ConversationLoop({
         const vad = await MicVAD.new({
           positiveSpeechThreshold: 0.5,
           negativeSpeechThreshold: 0.35,
-          redemptionFrames: 8,
-          minSpeechFrames: 3,
-          preSpeechPadFrames: 5,
+          redemptionMs: 300,
+          minSpeechMs: 100,
+          preSpeechPadMs: 200,
           modelURL: "/vad/silero_vad_v5.onnx",
           workletURL: "/vad/vad.worklet.bundle.min.js",
           // Use echo cancellation so TTS doesn't trigger VAD
