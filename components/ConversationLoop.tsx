@@ -195,7 +195,8 @@ export default function ConversationLoop({
           redemptionMs: 300,
           minSpeechMs: 100,
           preSpeechPadMs: 200,
-          baseAssetPath: "/vad",
+          baseAssetPath: "/vad/",
+          onnxWASMBasePath: "/vad/",
           model: "v5",
           // Use echo cancellation so TTS doesn't trigger VAD
           getStream: async () => navigator.mediaDevices.getUserMedia({
