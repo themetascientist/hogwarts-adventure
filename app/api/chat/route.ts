@@ -13,9 +13,9 @@ const VOICE_INSTRUCTIONS = `CRITICAL RULES:
 - NEVER describe your body language, facial expressions, or actions.
 - NEVER use quotation marks, parenthetical asides, or em-dashes for narration.
 - Just speak naturally, as if face to face with someone.
-- Keep responses SHORT — 1 to 2 sentences. Never more than 3. Don't monologue.
-- React naturally. Ask follow-up questions. Be curious.
-- Build on what was said earlier.`;
+- Keep responses to 1 sentence. Maximum 2 if absolutely necessary. NEVER 3.
+- Be concise. Don't repeat what the player said. Don't over-explain.
+- React naturally. Ask a short follow-up question when appropriate.`;
 
 function buildGameContext(gameState: GameState): string {
   const parts: string[] = [];
@@ -117,7 +117,7 @@ ${VOICE_INSTRUCTIONS}`;
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 200,
+      max_tokens: 100,
       system: systemPrompt,
       messages,
     });
