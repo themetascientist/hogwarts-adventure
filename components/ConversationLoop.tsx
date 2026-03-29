@@ -195,10 +195,10 @@ export default function ConversationLoop({
           redemptionMs: 300,
           minSpeechMs: 100,
           preSpeechPadMs: 200,
-          modelURL: "/vad/silero_vad_v5.onnx",
-          workletURL: "/vad/vad.worklet.bundle.min.js",
+          baseAssetPath: "/vad",
+          model: "v5",
           // Use echo cancellation so TTS doesn't trigger VAD
-          stream: await navigator.mediaDevices.getUserMedia({
+          getStream: async () => navigator.mediaDevices.getUserMedia({
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
