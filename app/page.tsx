@@ -206,20 +206,24 @@ export default function Home() {
             }
           }
 
-          // Inventory detection — server returns itemType + itemDescription
+          // Inventory detection — server returns itemType + itemRecipient + itemDescription
           if (data.stateUpdates?.itemType) {
             const itemType = data.stateUpdates.itemType as "wand" | "pet" | "books" | "food";
+            const recipient = (data.stateUpdates.itemRecipient as string).toLowerCase();
             const desc = data.stateUpdates.itemDescription as string;
+            const invValue = itemType === "books" ? true : desc;
             const labels: Record<string, string> = { wand: "wand", pet: "pet", books: "textbooks", food: "treats" };
 
-            if (!prev.inventory[itemType]) {
-              const invValue = itemType === "books" ? true : desc;
-              updated = { ...updated, inventory: { ...updated.inventory, [itemType]: invValue } };
-              showNotification(`${prev.playerName} got their ${labels[itemType]}!`);
-            } else if (!updated.friendInventory[itemType]) {
-              const invValue = itemType === "books" ? true : desc;
+            // Match recipient name to player or friend
+            const isFriend = recipient.includes(prev.friendName.toLowerCase());
+            const isPlayer = recipient.includes(prev.playerName.toLowerCase());
+
+            if (isFriend && !updated.friendInventory[itemType]) {
               updated = { ...updated, friendInventory: { ...updated.friendInventory, [itemType]: invValue } };
               showNotification(`${prev.friendName} got their ${labels[itemType]}!`);
+            } else if ((isPlayer || !isFriend) && !prev.inventory[itemType]) {
+              updated = { ...updated, inventory: { ...updated.inventory, [itemType]: invValue } };
+              showNotification(`${prev.playerName} got their ${labels[itemType]}!`);
             }
           }
 

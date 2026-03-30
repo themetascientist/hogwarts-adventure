@@ -94,12 +94,13 @@ ${locationContext}
 
 ${gameContext}
 
-IMPORTANT: When you give a student an item (wand, pet, books, or food), include the item tag at the END of your response on its own line. The tag will be stripped before speaking.
-- Wand: [ITEM:wand:description] e.g. [ITEM:wand:Holly and phoenix feather, 11 inches]
-- Pet: [ITEM:pet:description] e.g. [ITEM:pet:Snowy owl named Artemis]
-- Books: [ITEM:books:Standard first-year textbooks]
-- Food: [ITEM:food:description] e.g. [ITEM:food:Chocolate frogs and pumpkin pasties]
-Only include the tag when the item is actually being given/sold/chosen, not when just discussing it.
+IMPORTANT: Two players (${gameState?.playerName || "player"} and ${gameState?.friendName || "friend"}) are playing together. When you give a student an item, include the item tag at the END of your response. The tag will be stripped before speaking. You MUST specify which student receives the item by name.
+Format: [ITEM:type:recipient:description]
+- [ITEM:wand:${gameState?.playerName || "player"}:Holly and phoenix feather, 11 inches]
+- [ITEM:pet:${gameState?.friendName || "friend"}:Snowy owl named Artemis]
+- [ITEM:books:${gameState?.playerName || "player"}:Standard first-year textbooks]
+- [ITEM:food:${gameState?.friendName || "friend"}:Chocolate frogs and pumpkin pasties]
+Only include the tag when the item is actually being given/sold/chosen, not when just discussing it. Pay attention to which student is speaking or being addressed.
 
 ${VOICE_INSTRUCTIONS}`;
 
@@ -135,11 +136,12 @@ ${VOICE_INSTRUCTIONS}`;
     // Detect game-state changes from the response
     const stateUpdates: Record<string, unknown> = {};
 
-    // Extract item tags
-    const itemMatch = text.match(/\[ITEM:(wand|pet|books|food):([^\]]+)\]/);
+    // Extract item tags: [ITEM:type:recipient:description]
+    const itemMatch = text.match(/\[ITEM:(wand|pet|books|food):([^:]+):([^\]]+)\]/);
     if (itemMatch) {
       stateUpdates.itemType = itemMatch[1];
-      stateUpdates.itemDescription = itemMatch[2];
+      stateUpdates.itemRecipient = itemMatch[2].trim();
+      stateUpdates.itemDescription = itemMatch[3].trim();
       // Strip the tag from spoken text
       text = text.replace(/\[ITEM:[^\]]+\]/, "").trim();
     }
