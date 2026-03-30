@@ -206,51 +206,20 @@ export default function Home() {
             }
           }
 
-          // Inventory detection — assigns to player first, then friend
-          const lr = data.response.toLowerCase();
-          if (charId === "ollivander" && messagesWithResponse.length >= 4) {
-            const wandMatch = lr.includes("wand") && (lr.includes("choose") || lr.includes("sparks") || lr.includes("warmth") || lr.includes("yours"));
-            if (wandMatch) {
-              if (!prev.inventory.wand) {
-                updated = { ...updated, inventory: { ...updated.inventory, wand: data.response.slice(0, 100) } };
-                showNotification(`${prev.playerName} got their wand!`);
-              } else if (!updated.friendInventory.wand) {
-                updated = { ...updated, friendInventory: { ...updated.friendInventory, wand: data.response.slice(0, 100) } };
-                showNotification(`${prev.friendName} got their wand!`);
-              }
-            }
-          }
-          if (charId === "pet-shop-owner" && messagesWithResponse.length >= 4) {
-            const petMatch = lr.includes("name") || lr.includes("yours") || lr.includes("wonderful choice") || lr.includes("good choice");
-            if (petMatch) {
-              if (!prev.inventory.pet) {
-                updated = { ...updated, inventory: { ...updated.inventory, pet: data.response.slice(0, 80) } };
-                showNotification(`${prev.playerName} got a pet!`);
-              } else if (!updated.friendInventory.pet) {
-                updated = { ...updated, friendInventory: { ...updated.friendInventory, pet: data.response.slice(0, 80) } };
-                showNotification(`${prev.friendName} got a pet!`);
-              }
-            }
-          }
-          if (charId === "bookshop-clerk" && messagesWithResponse.length >= 2) {
-            const bookMatch = lr.includes("textbook") || lr.includes("books") || lr.includes("set");
-            if (bookMatch) {
-              if (!prev.inventory.books) {
-                updated = { ...updated, inventory: { ...updated.inventory, books: true } };
-                showNotification(`${prev.playerName} got their textbooks!`);
-              } else if (!updated.friendInventory.books) {
-                updated = { ...updated, friendInventory: { ...updated.friendInventory, books: true } };
-                showNotification(`${prev.friendName} got their textbooks!`);
-              }
-            }
-          }
-          if (charId === "trolley-witch" && messagesWithResponse.length >= 2) {
-            if (!prev.inventory.food) {
-              updated = { ...updated, inventory: { ...updated.inventory, food: data.response.slice(0, 80) } };
-              showNotification(`${prev.playerName} got some treats!`);
-            } else if (!updated.friendInventory.food) {
-              updated = { ...updated, friendInventory: { ...updated.friendInventory, food: data.response.slice(0, 80) } };
-              showNotification(`${prev.friendName} got some treats!`);
+          // Inventory detection — server returns itemType + itemDescription
+          if (data.stateUpdates?.itemType) {
+            const itemType = data.stateUpdates.itemType as "wand" | "pet" | "books" | "food";
+            const desc = data.stateUpdates.itemDescription as string;
+            const labels: Record<string, string> = { wand: "wand", pet: "pet", books: "textbooks", food: "treats" };
+
+            if (!prev.inventory[itemType]) {
+              const invValue = itemType === "books" ? true : desc;
+              updated = { ...updated, inventory: { ...updated.inventory, [itemType]: invValue } };
+              showNotification(`${prev.playerName} got their ${labels[itemType]}!`);
+            } else if (!updated.friendInventory[itemType]) {
+              const invValue = itemType === "books" ? true : desc;
+              updated = { ...updated, friendInventory: { ...updated.friendInventory, [itemType]: invValue } };
+              showNotification(`${prev.friendName} got their ${labels[itemType]}!`);
             }
           }
 

@@ -94,6 +94,13 @@ ${locationContext}
 
 ${gameContext}
 
+IMPORTANT: When you give a student an item (wand, pet, books, or food), include the item tag at the END of your response on its own line. The tag will be stripped before speaking.
+- Wand: [ITEM:wand:description] e.g. [ITEM:wand:Holly and phoenix feather, 11 inches]
+- Pet: [ITEM:pet:description] e.g. [ITEM:pet:Snowy owl named Artemis]
+- Books: [ITEM:books:Standard first-year textbooks]
+- Food: [ITEM:food:description] e.g. [ITEM:food:Chocolate frogs and pumpkin pasties]
+Only include the tag when the item is actually being given/sold/chosen, not when just discussing it.
+
 ${VOICE_INSTRUCTIONS}`;
 
   // Filter out [GREETING] tags from history so Claude doesn't see them
@@ -123,10 +130,19 @@ ${VOICE_INSTRUCTIONS}`;
     });
 
     const textContent = response.content.find((block) => block.type === "text");
-    const text = textContent ? textContent.text : "";
+    let text = textContent ? textContent.text : "";
 
     // Detect game-state changes from the response
     const stateUpdates: Record<string, unknown> = {};
+
+    // Extract item tags
+    const itemMatch = text.match(/\[ITEM:(wand|pet|books|food):([^\]]+)\]/);
+    if (itemMatch) {
+      stateUpdates.itemType = itemMatch[1];
+      stateUpdates.itemDescription = itemMatch[2];
+      // Strip the tag from spoken text
+      text = text.replace(/\[ITEM:[^\]]+\]/, "").trim();
+    }
 
     // Detect sorting
     const sortMatch = text.match(/I sort you into (\w+)!/i);
