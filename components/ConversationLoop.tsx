@@ -149,6 +149,9 @@ export default function ConversationLoop({
         const audioBlob = await ttsRes.blob();
         const url = URL.createObjectURL(audioBlob);
 
+        // Pause VAD while TTS plays to prevent self-hearing
+        if (vadRef.current) vadRef.current.pause();
+
         await new Promise<void>((resolve) => {
           if (!audioRef.current || !activeRef.current) {
             URL.revokeObjectURL(url);
@@ -157,9 +160,22 @@ export default function ConversationLoop({
           }
 
           audioRef.current.src = url;
-          audioRef.current.onended = () => { URL.revokeObjectURL(url); resolve(); };
-          audioRef.current.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-          audioRef.current.play().catch(() => { URL.revokeObjectURL(url); resolve(); });
+          audioRef.current.onended = () => {
+            URL.revokeObjectURL(url);
+            // Resume VAD after TTS finishes
+            if (vadRef.current && activeRef.current) vadRef.current.start();
+            resolve();
+          };
+          audioRef.current.onerror = () => {
+            URL.revokeObjectURL(url);
+            if (vadRef.current && activeRef.current) vadRef.current.start();
+            resolve();
+          };
+          audioRef.current.play().catch(() => {
+            URL.revokeObjectURL(url);
+            if (vadRef.current && activeRef.current) vadRef.current.start();
+            resolve();
+          });
         });
 
       } catch (err) {
@@ -282,7 +298,7 @@ export default function ConversationLoop({
 
       {phase === "speaking" && (
         <p className="text-xs text-[var(--text-secondary)]">
-          Just start talking to interrupt
+          Listening resumes when they finish speaking
         </p>
       )}
 
