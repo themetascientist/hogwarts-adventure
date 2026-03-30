@@ -4,7 +4,8 @@ export type Chapter =
   | "hogwarts-express"
   | "sorting"
   | "classes"
-  | "mystery";
+  | "mystery"
+  | "epilogue";
 
 export const CHAPTER_ORDER: Chapter[] = [
   "diagon-alley",
@@ -12,6 +13,7 @@ export const CHAPTER_ORDER: Chapter[] = [
   "sorting",
   "classes",
   "mystery",
+  "epilogue",
 ];
 
 export const CHAPTER_TITLES: Record<Chapter, string> = {
@@ -20,6 +22,7 @@ export const CHAPTER_TITLES: Record<Chapter, string> = {
   sorting: "The Sorting Ceremony",
   classes: "First Days at Hogwarts",
   mystery: "The Vanishing Enchantment",
+  epilogue: "A New Dawn at Hogwarts",
 };
 
 export type House = "gryffindor" | "hufflepuff" | "ravenclaw" | "slytherin";
@@ -43,6 +46,7 @@ export interface GameState {
   cluesFound: string[];
   flags: Record<string, boolean>;
   chatHistory: Record<string, Array<{ role: "user" | "assistant"; content: string }>>;
+  mysteryComplete: boolean;
 }
 
 export function createInitialState(playerName: string, friendName: string): GameState {
@@ -68,6 +72,7 @@ export function createInitialState(playerName: string, friendName: string): Game
     cluesFound: [],
     flags: {},
     chatHistory: {},
+    mysteryComplete: false,
   };
 }
 
@@ -83,13 +88,14 @@ export function canAdvanceChapter(state: GameState): boolean {
     case "sorting":
       return state.house !== null && state.friendHouse !== null;
     case "classes": {
-      // Can advance once they've talked to at least 2 professors and found at least 1 clue
-      const professorsTalkedTo = ["snape", "mcgonagall-prof", "hermione", "hagrid-prof", "dumbledore", "nearly-headless-nick"]
-        .filter((id) => (state.chatHistory[id]?.length ?? 0) >= 2);
-      return professorsTalkedTo.length >= 2 && state.cluesFound.length >= 1;
+      // Need 3+ clues to begin investigating
+      return state.cluesFound.length >= 3;
     }
     case "mystery":
-      return state.cluesFound.length >= 5;
+      // Must complete the ritual (talk to the keystone, solve the puzzle)
+      return state.mysteryComplete;
+    case "epilogue":
+      return false; // Final chapter
     default:
       return false;
   }
@@ -121,7 +127,9 @@ function getStartingLocation(chapter: Chapter): string {
     case "classes":
       return "great-hall";
     case "mystery":
-      return "great-hall";
+      return "entrance-hall-mystery";
+    case "epilogue":
+      return "great-hall-epilogue";
     default:
       return "diagon-alley-main";
   }
@@ -129,13 +137,13 @@ function getStartingLocation(chapter: Chapter): string {
 
 // All mystery clues
 export const ALL_CLUES = [
-  { id: "clue-portraits", text: "The portraits in the corridors have been going silent — some have emptied completely." },
-  { id: "clue-hagrid", text: "Hagrid mentioned the protective wards around the Forbidden Forest are weakening." },
-  { id: "clue-library", text: "An old book mentions the Founders placed an enchanted keystone beneath the castle to power its protections." },
-  { id: "clue-snape", text: "Snape noticed potion ingredients losing their magical properties — something is draining ambient magic." },
-  { id: "clue-ghost", text: "Nearly Headless Nick remembers the keystone being hidden where the four house common rooms converge." },
-  { id: "clue-hermione", text: "Hermione found a reference to a ritual that can restore a weakened keystone using combined house magic." },
-  { id: "clue-dumbledore", text: "Dumbledore hinted that the castle itself will guide those who are worthy to what needs protecting." },
+  { id: "clue-portraits", text: "The portraits in the corridors have been going silent — some have emptied completely.", source: "nearly-headless-nick" },
+  { id: "clue-wards", text: "The protective wards around the Forbidden Forest are weakening. Creatures wander closer to the castle.", source: "hagrid-prof" },
+  { id: "clue-keystone", text: "An old book describes an enchanted keystone placed by the Founders beneath Hogwarts — it powers all the castle's magic.", source: "hermione" },
+  { id: "clue-draining", text: "Potion ingredients are losing their magical properties — something is draining ambient magic from the castle.", source: "snape" },
+  { id: "clue-convergence", text: "The keystone is hidden where the four house common rooms converge — deep beneath the castle where the foundations meet.", source: "nearly-headless-nick" },
+  { id: "clue-ritual", text: "A ritual combining magic from all four houses can restore a weakened keystone.", source: "hermione" },
+  { id: "clue-worthy", text: "Dumbledore hinted that the castle itself will guide those who are worthy to what needs protecting.", source: "dumbledore" },
 ] as const;
 
 export type ClueId = (typeof ALL_CLUES)[number]["id"];

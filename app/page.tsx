@@ -212,15 +212,25 @@ export default function Home() {
                 showNotification(`${prev.playerName} was sorted into ${capHouse}!`);
               }
             }
-            if (
-              data.stateUpdates.newClue &&
-              !prev.cluesFound.includes(data.stateUpdates.newClue)
-            ) {
-              updated = {
-                ...updated,
-                cluesFound: [...prev.cluesFound, data.stateUpdates.newClue],
-              };
-              showNotification("You discovered a new clue!");
+            // Handle clue discoveries (content-driven, may be multiple)
+            if (data.stateUpdates.newClues && Array.isArray(data.stateUpdates.newClues)) {
+              const fresh = (data.stateUpdates.newClues as string[]).filter(
+                (c: string) => !updated.cluesFound.includes(c)
+              );
+              if (fresh.length > 0) {
+                updated = {
+                  ...updated,
+                  cluesFound: [...updated.cluesFound, ...fresh],
+                };
+                showNotification(
+                  fresh.length === 1 ? "You discovered a new clue!" : `You discovered ${fresh.length} new clues!`
+                );
+              }
+            }
+            // Handle mystery completion
+            if (data.stateUpdates.mysteryComplete) {
+              updated = { ...updated, mysteryComplete: true };
+              showNotification("The Keystone is restored! Hogwarts is saved!");
             }
           }
 
@@ -552,8 +562,9 @@ export default function Home() {
           {gameState.chapter === "diagon-alley" && "Head to King\u2019s Cross \u2014 Board the Hogwarts Express \u2192"}
           {gameState.chapter === "hogwarts-express" && "The train has arrived \u2014 Enter Hogwarts \u2192"}
           {gameState.chapter === "sorting" && "Join your house table \u2014 Begin your studies \u2192"}
-          {gameState.chapter === "classes" && "Something strange is happening \u2014 Investigate \u2192"}
-          {gameState.chapter === "mystery" && "You\u2019ve solved the mystery!"}
+          {gameState.chapter === "classes" && `You have ${gameState.cluesFound.length} clues \u2014 Something is wrong with the castle. Investigate \u2192`}
+          {gameState.chapter === "mystery" && "The Keystone is restored \u2014 Return to the Great Hall \u2192"}
+          {gameState.chapter === "epilogue" && "\u2728 The End \u2014 Thank you for playing! \u2728"}
         </button>
       )}
 

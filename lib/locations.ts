@@ -25,7 +25,7 @@ export const locations: Record<string, Location> = {
   ollivanders: {
     id: "ollivanders",
     name: "Ollivanders Wand Shop",
-    emoji: "✨",
+    emoji: "🪄",
     description:
       "A narrow, dusty shop crammed floor to ceiling with thousands of narrow boxes. The air hums faintly with magic. A single wand rests on a faded velvet cushion in the window.",
     characterIds: ["ollivander"],
@@ -94,7 +94,7 @@ export const locations: Record<string, Location> = {
     emoji: "🏰",
     description:
       "The Great Hall buzzes with breakfast chatter. Owls swoop in delivering morning post, plates refill themselves, and house banners hang from the enchanted ceiling.",
-    characterIds: ["dumbledore", "hagrid-prof"],
+    characterIds: ["dumbledore"],
     connectedTo: ["entrance-hall"],
     chapter: "classes",
   },
@@ -153,6 +153,50 @@ export const locations: Record<string, Location> = {
     characterIds: ["hagrid-prof"],
     connectedTo: ["entrance-hall"],
     chapter: "classes",
+  },
+
+  // === MYSTERY CHAPTER ===
+  "entrance-hall-mystery": {
+    id: "entrance-hall-mystery",
+    name: "Entrance Hall",
+    emoji: "🚪",
+    description:
+      "The entrance hall feels different tonight. The torches flicker weakly, and the suits of armor seem to lean toward a shadowy passage behind the marble staircase you've never noticed before.",
+    characterIds: ["nearly-headless-nick-mystery"],
+    connectedTo: ["hidden-passage"],
+    chapter: "mystery",
+  },
+  "hidden-passage": {
+    id: "hidden-passage",
+    name: "The Hidden Passage",
+    emoji: "🕳️",
+    description:
+      "A narrow spiraling staircase descends into darkness beneath the castle. The walls are carved with the symbols of all four Hogwarts houses. The air grows warmer as you go deeper.",
+    characterIds: ["dumbledore-mystery"],
+    connectedTo: ["entrance-hall-mystery", "keystone-chamber"],
+    chapter: "mystery",
+  },
+  "keystone-chamber": {
+    id: "keystone-chamber",
+    name: "The Keystone Chamber",
+    emoji: "💎",
+    description:
+      "A vast underground chamber where four stone archways meet, each carved with a house crest. In the center, a cracked crystal keystone pulses with fading golden light. The air hums with ancient, weakening magic.",
+    characterIds: ["keystone-guardian"],
+    connectedTo: ["hidden-passage"],
+    chapter: "mystery",
+  },
+
+  // === EPILOGUE ===
+  "great-hall-epilogue": {
+    id: "great-hall-epilogue",
+    name: "The Great Hall",
+    emoji: "🏰",
+    description:
+      "The Great Hall is alive with celebration. The enchanted ceiling blazes with stars, the house banners ripple in a magical breeze, and every portrait on the walls is cheering and applauding.",
+    characterIds: ["dumbledore-epilogue"],
+    connectedTo: [],
+    chapter: "epilogue",
   },
 };
 

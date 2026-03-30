@@ -13,7 +13,7 @@ const VOICE_INSTRUCTIONS = `CRITICAL RULES:
 - NEVER describe your body language, facial expressions, or actions.
 - NEVER use quotation marks, parenthetical asides, or em-dashes for narration.
 - Just speak naturally, as if face to face with someone.
-- Keep responses to 1 sentence. Maximum 2 if absolutely necessary. NEVER 3.
+- Keep responses to 1-2 sentences. Maximum 3 for important story moments.
 - Be concise. Don't repeat what the player said. Don't over-explain.
 - React naturally. Ask a short follow-up question when appropriate.`;
 
@@ -73,8 +73,9 @@ function buildGameContext(gameState: GameState): string {
       .map((id) => ALL_CLUES.find((c) => c.id === id)?.text)
       .filter(Boolean);
     if (clueTexts.length > 0) {
-      parts.push(`The student has discovered these clues about what's happening at Hogwarts: ${clueTexts.join(" ")}`);
+      parts.push(`The students have already discovered these clues: ${clueTexts.join(" | ")}`);
     }
+    parts.push(`They have ${gameState.cluesFound.length} of 7 possible clues. Do NOT repeat clues they already know.`);
   }
 
   return parts.join(" ");
@@ -135,7 +136,7 @@ ${VOICE_INSTRUCTIONS}`;
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 100,
+      max_tokens: 150,
       system: systemPrompt,
       messages,
     });
@@ -152,7 +153,6 @@ ${VOICE_INSTRUCTIONS}`;
       stateUpdates.itemType = itemMatch[1];
       stateUpdates.itemRecipient = itemMatch[2].trim();
       stateUpdates.itemDescription = itemMatch[3].trim();
-      // Strip the tag from spoken text
       text = text.replace(/\[ITEM:[^\]]+\]/, "").trim();
     }
 
@@ -177,18 +177,25 @@ ${VOICE_INSTRUCTIONS}`;
       }
     }
 
-    // Detect clues based on character
-    const clueMap: Record<string, string> = {
-      "nearly-headless-nick": "clue-ghost",
-      snape: "clue-snape",
-      hermione: "clue-hermione",
-      "hagrid-prof": "clue-hagrid",
-      dumbledore: "clue-dumbledore",
-      "bookshop-clerk": "clue-library",
-      "train-friend": "clue-portraits",
-    };
-    if (clueMap[characterId] && history && history.length >= 2) {
-      stateUpdates.newClue = clueMap[characterId];
+    // Detect clues via [CLUE:id] tags (content-driven, not automatic)
+    const clueMatches = text.matchAll(/\[CLUE:([\w-]+)\]/g);
+    const newClues: string[] = [];
+    for (const match of clueMatches) {
+      const clueId = match[1];
+      // Validate it's a real clue ID
+      if (ALL_CLUES.some((c) => c.id === clueId)) {
+        newClues.push(clueId);
+      }
+      text = text.replace(match[0], "").trim();
+    }
+    if (newClues.length > 0) {
+      stateUpdates.newClues = newClues;
+    }
+
+    // Detect mystery completion
+    if (text.includes("[MYSTERY_COMPLETE]")) {
+      stateUpdates.mysteryComplete = true;
+      text = text.replace(/\[MYSTERY_COMPLETE\]/, "").trim();
     }
 
     return NextResponse.json({ response: text, characterId, stateUpdates });
