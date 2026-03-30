@@ -37,6 +37,7 @@ export interface GameState {
   inventory: Inventory;
   friendInventory: Inventory;
   house: House | null;
+  friendHouse: House | null;
   playerName: string;
   friendName: string;
   cluesFound: string[];
@@ -61,6 +62,7 @@ export function createInitialState(playerName: string, friendName: string): Game
       food: null,
     },
     house: null,
+    friendHouse: null,
     playerName,
     friendName,
     cluesFound: [],
@@ -79,7 +81,7 @@ export function canAdvanceChapter(state: GameState): boolean {
       // Can advance once they've chatted with the train friend AND got food
       return !!state.inventory.food && (state.chatHistory["train-friend"]?.length ?? 0) >= 2;
     case "sorting":
-      return state.house !== null;
+      return state.house !== null && state.friendHouse !== null;
     case "classes": {
       // Can advance once they've talked to at least 2 professors and found at least 1 clue
       const professorsTalkedTo = ["snape", "mcgonagall-prof", "hermione", "hagrid-prof", "dumbledore", "nearly-headless-nick"]

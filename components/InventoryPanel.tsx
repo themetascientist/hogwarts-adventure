@@ -2,13 +2,26 @@
 
 import { GameState, ALL_CLUES } from "@/lib/game-state";
 
+function petEmoji(pet: string | null): string {
+  if (!pet) return "🦉";
+  const p = pet.toLowerCase();
+  if (p.includes("cat") || p.includes("kitten")) return "🐈";
+  if (p.includes("toad") || p.includes("frog")) return "🐸";
+  if (p.includes("rat") || p.includes("mouse")) return "🐀";
+  if (p.includes("snake") || p.includes("serpent")) return "🐍";
+  if (p.includes("rabbit") || p.includes("bunny")) return "🐇";
+  return "🦉";
+}
+
 interface InventoryPanelProps {
   gameState: GameState;
   onClose: () => void;
 }
 
 export default function InventoryPanel({ gameState, onClose }: InventoryPanelProps) {
-  const { inventory, friendInventory, playerName, friendName, cluesFound, house } = gameState;
+  const { inventory, friendInventory, playerName, friendName, cluesFound, house, friendHouse } = gameState;
+
+  const formatHouse = (h: string) => h.charAt(0).toUpperCase() + h.slice(1);
 
   return (
     <div
@@ -29,20 +42,15 @@ export default function InventoryPanel({ gameState, onClose }: InventoryPanelPro
           </button>
         </div>
 
-        {house && (
-          <div className="mb-4 text-center py-2 bg-[var(--bg-secondary)] rounded-lg">
-            <span className="text-[var(--gold)] font-bold">
-              House: {house.charAt(0).toUpperCase() + house.slice(1)}
-            </span>
-          </div>
-        )}
-
         {/* Player inventory */}
         <div className="mb-4">
-          <h3 className="text-sm font-bold text-[var(--gold)] mb-2">{playerName}</h3>
+          <h3 className="text-sm font-bold text-[var(--gold)] mb-2">
+            {playerName}
+            {house && <span className="ml-2 text-xs font-normal text-[var(--text-secondary)]">({formatHouse(house)})</span>}
+          </h3>
           <div className="space-y-2">
-            <InventoryItem emoji="✨" label="Wand" value={inventory.wand} />
-            <InventoryItem emoji="🦉" label="Pet" value={inventory.pet} />
+            <InventoryItem emoji="🪄" label="Wand" value={inventory.wand} />
+            <InventoryItem emoji={petEmoji(inventory.pet)} label="Pet" value={inventory.pet} />
             <InventoryItem emoji="📚" label="Books" value={inventory.books ? "Standard first-year textbooks" : null} />
             <InventoryItem emoji="🍬" label="Treats" value={inventory.food} />
           </div>
@@ -50,10 +58,13 @@ export default function InventoryPanel({ gameState, onClose }: InventoryPanelPro
 
         {/* Friend inventory */}
         <div className="mb-4">
-          <h3 className="text-sm font-bold text-[var(--gold)] mb-2">{friendName}</h3>
+          <h3 className="text-sm font-bold text-[var(--gold)] mb-2">
+            {friendName}
+            {friendHouse && <span className="ml-2 text-xs font-normal text-[var(--text-secondary)]">({formatHouse(friendHouse)})</span>}
+          </h3>
           <div className="space-y-2">
-            <InventoryItem emoji="✨" label="Wand" value={friendInventory.wand} />
-            <InventoryItem emoji="🦉" label="Pet" value={friendInventory.pet} />
+            <InventoryItem emoji="🪄" label="Wand" value={friendInventory.wand} />
+            <InventoryItem emoji={petEmoji(friendInventory.pet)} label="Pet" value={friendInventory.pet} />
             <InventoryItem emoji="📚" label="Books" value={friendInventory.books ? "Standard first-year textbooks" : null} />
             <InventoryItem emoji="🍬" label="Treats" value={friendInventory.food} />
           </div>

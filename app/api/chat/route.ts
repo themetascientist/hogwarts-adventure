@@ -59,7 +59,14 @@ function buildGameContext(gameState: GameState): string {
     parts.push(`${gameState.friendName} hasn't gotten any treats yet — offer them some too.`);
   }
   if (gameState.house) {
-    parts.push(`The student was sorted into ${gameState.house.charAt(0).toUpperCase() + gameState.house.slice(1)}.`);
+    parts.push(`${gameState.playerName} was sorted into ${gameState.house.charAt(0).toUpperCase() + gameState.house.slice(1)}.`);
+  } else {
+    parts.push(`${gameState.playerName} has not been sorted yet.`);
+  }
+  if (gameState.friendHouse) {
+    parts.push(`${gameState.friendName} was sorted into ${gameState.friendHouse.charAt(0).toUpperCase() + gameState.friendHouse.slice(1)}.`);
+  } else if (gameState.house) {
+    parts.push(`${gameState.friendName} has not been sorted yet — sort them next.`);
   }
   if (gameState.cluesFound.length > 0) {
     const clueTexts = gameState.cluesFound
@@ -101,6 +108,9 @@ Format: [ITEM:type:recipient:description]
 - [ITEM:books:${gameState?.playerName || "player"}:Standard first-year textbooks]
 - [ITEM:food:${gameState?.friendName || "friend"}:Chocolate frogs and pumpkin pasties]
 Only include the tag when the item is actually being given/sold/chosen, not when just discussing it. Pay attention to which student is speaking or being addressed.
+
+When sorting a student into a house, include: [SORT:recipient:house] e.g. [SORT:${gameState?.playerName || "player"}:Gryffindor]
+Sort each student individually based on the conversation. Both students must be sorted.
 
 ${VOICE_INSTRUCTIONS}`;
 
@@ -146,12 +156,24 @@ ${VOICE_INSTRUCTIONS}`;
       text = text.replace(/\[ITEM:[^\]]+\]/, "").trim();
     }
 
-    // Detect sorting
-    const sortMatch = text.match(/I sort you into (\w+)!/i);
-    if (sortMatch) {
-      const house = sortMatch[1].toLowerCase();
+    // Detect sorting: [SORT:recipient:house]
+    const sortTagMatch = text.match(/\[SORT:([^:]+):(\w+)\]/);
+    if (sortTagMatch) {
+      const recipient = sortTagMatch[1].trim();
+      const house = sortTagMatch[2].toLowerCase();
       if (["gryffindor", "hufflepuff", "ravenclaw", "slytherin"].includes(house)) {
+        stateUpdates.sortRecipient = recipient;
         stateUpdates.house = house;
+      }
+      text = text.replace(/\[SORT:[^\]]+\]/, "").trim();
+    } else {
+      // Fallback: detect from spoken text
+      const sortMatch = text.match(/I sort you into (\w+)!/i);
+      if (sortMatch) {
+        const house = sortMatch[1].toLowerCase();
+        if (["gryffindor", "hufflepuff", "ravenclaw", "slytherin"].includes(house)) {
+          stateUpdates.house = house;
+        }
       }
     }
 

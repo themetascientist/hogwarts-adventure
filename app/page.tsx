@@ -19,6 +19,17 @@ import InventoryPanel from "@/components/InventoryPanel";
 
 const SAVE_KEY = "hogwarts-adventure-save";
 
+function petEmoji(pet: string | null): string {
+  if (!pet) return "🦉";
+  const p = pet.toLowerCase();
+  if (p.includes("cat") || p.includes("kitten")) return "🐈";
+  if (p.includes("toad") || p.includes("frog")) return "🐸";
+  if (p.includes("rat") || p.includes("mouse")) return "🐀";
+  if (p.includes("snake") || p.includes("serpent")) return "🐍";
+  if (p.includes("rabbit") || p.includes("bunny")) return "🐇";
+  return "🦉";
+}
+
 function saveGame(state: GameState) {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
@@ -187,12 +198,19 @@ export default function Home() {
           };
 
           if (data.stateUpdates) {
-            if (data.stateUpdates.house && !prev.house) {
+            if (data.stateUpdates.house) {
               const house = data.stateUpdates.house as House;
-              updated = { ...updated, house };
-              showNotification(
-                `You've been sorted into ${house.charAt(0).toUpperCase() + house.slice(1)}!`
-              );
+              const recipient = (data.stateUpdates.sortRecipient as string || "").toLowerCase();
+              const isFriend = recipient.includes(prev.friendName.toLowerCase());
+              const capHouse = house.charAt(0).toUpperCase() + house.slice(1);
+
+              if (isFriend && !prev.friendHouse) {
+                updated = { ...updated, friendHouse: house };
+                showNotification(`${prev.friendName} was sorted into ${capHouse}!`);
+              } else if (!isFriend && !prev.house) {
+                updated = { ...updated, house };
+                showNotification(`${prev.playerName} was sorted into ${capHouse}!`);
+              }
             }
             if (
               data.stateUpdates.newClue &&
@@ -479,15 +497,15 @@ export default function Home() {
           >
             <div className="flex items-center gap-1">
               <span className="text-xs text-[var(--text-secondary)] w-12 truncate">{gameState.playerName}</span>
-              <span className={gameState.inventory.wand ? "opacity-100" : "opacity-20"}>✨</span>
-              <span className={gameState.inventory.pet ? "opacity-100" : "opacity-20"}>🦉</span>
+              <span className={gameState.inventory.wand ? "opacity-100" : "opacity-20"}>🪄</span>
+              <span className={gameState.inventory.pet ? "opacity-100" : "opacity-20"}>{petEmoji(gameState.inventory.pet)}</span>
               <span className={gameState.inventory.books ? "opacity-100" : "opacity-20"}>📚</span>
               {gameState.inventory.food && <span>🍬</span>}
             </div>
             <div className="flex items-center gap-1">
               <span className="text-xs text-[var(--text-secondary)] w-12 truncate">{gameState.friendName}</span>
-              <span className={gameState.friendInventory.wand ? "opacity-100" : "opacity-20"}>✨</span>
-              <span className={gameState.friendInventory.pet ? "opacity-100" : "opacity-20"}>🦉</span>
+              <span className={gameState.friendInventory.wand ? "opacity-100" : "opacity-20"}>🪄</span>
+              <span className={gameState.friendInventory.pet ? "opacity-100" : "opacity-20"}>{petEmoji(gameState.friendInventory.pet)}</span>
               <span className={gameState.friendInventory.books ? "opacity-100" : "opacity-20"}>📚</span>
               {gameState.friendInventory.food && <span>🍬</span>}
             </div>
