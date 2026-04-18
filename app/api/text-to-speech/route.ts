@@ -10,38 +10,56 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "xi-api-key": process.env.ELEVENLABS_API_KEY || "",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_flash_v2_5",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    console.error("ELEVENLABS_API_KEY not configured");
     return NextResponse.json(
-      { error: `ElevenLabs error: ${error}` },
-      { status: response.status }
+      { error: "TTS service unavailable" },
+      { status: 503 }
     );
   }
 
-  const audioBuffer = await response.arrayBuffer();
+  try {
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "xi-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_flash_v2_5",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+          },
+        }),
+        // ElevenLabs flash is usually <3s; 15s is a safe upper bound
+        signal: AbortSignal.timeout(15000),
+      }
+    );
 
-  return new NextResponse(audioBuffer, {
-    headers: {
-      "Content-Type": "audio/mpeg",
-    },
-  });
+    if (!response.ok) {
+      const error = await response.text();
+      console.error(`ElevenLabs error (${response.status}):`, error);
+      return NextResponse.json(
+        { error: `ElevenLabs error: ${error.substring(0, 200)}` },
+        { status: response.status }
+      );
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+
+    return new NextResponse(audioBuffer, {
+      headers: {
+        "Content-Type": "audio/mpeg",
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "TTS failed";
+    console.error("TTS request error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

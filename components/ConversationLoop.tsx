@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { fetchWithTimeout } from "@/lib/utils";
 
 type ConvoPhase = "idle" | "recording" | "transcribing" | "thinking" | "speaking";
 
@@ -74,7 +75,11 @@ export default function ConversationLoop({
       setPhase("transcribing");
       const formData = new FormData();
       formData.append("audio", blob, "recording.webm");
-      const res = await fetch("/api/speech-to-text", { method: "POST", body: formData });
+      const res = await fetchWithTimeout(
+        "/api/speech-to-text",
+        { method: "POST", body: formData },
+        20000
+      );
       const data = await res.json();
 
       const transcript = (data.text || "").trim();
@@ -108,31 +113,45 @@ export default function ConversationLoop({
       // === SPEAK ===
       setPhase("speaking");
 
+      let ttsUrl: string | null = null;
       try {
-        const ttsRes = await fetch("/api/text-to-speech", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: result.response, voiceId: result.voiceId }),
-        });
+        const ttsRes = await fetchWithTimeout(
+          "/api/text-to-speech",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: result.response, voiceId: result.voiceId }),
+          },
+          20000
+        );
 
         if (ttsRes.ok && activeRef.current) {
           const audioBlob = await ttsRes.blob();
-          const url = URL.createObjectURL(audioBlob);
+          ttsUrl = URL.createObjectURL(audioBlob);
 
           await new Promise<void>((resolve) => {
-            if (!audioRef.current || !activeRef.current) {
+            const url = ttsUrl!;
+            const done = () => {
               URL.revokeObjectURL(url);
+              ttsUrl = null;
               resolve();
+            };
+            if (!audioRef.current || !activeRef.current) {
+              done();
               return;
             }
             audioRef.current.src = url;
-            audioRef.current.onended = () => { URL.revokeObjectURL(url); resolve(); };
-            audioRef.current.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-            audioRef.current.play().catch(() => { URL.revokeObjectURL(url); resolve(); });
+            audioRef.current.onended = done;
+            audioRef.current.onerror = done;
+            audioRef.current.play().catch(done);
           });
+        } else if (ttsUrl) {
+          URL.revokeObjectURL(ttsUrl);
+          ttsUrl = null;
         }
       } catch (err) {
         console.error("TTS error:", err);
+        if (ttsUrl) URL.revokeObjectURL(ttsUrl);
       }
     } catch (err) {
       console.error("Conversation error:", err);

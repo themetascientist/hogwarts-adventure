@@ -1,17 +1,7 @@
 "use client";
 
 import { GameState, ALL_CLUES } from "@/lib/game-state";
-
-function petEmoji(pet: string | null): string {
-  if (!pet) return "🦉";
-  const p = pet.toLowerCase();
-  if (p.includes("cat") || p.includes("kitten")) return "🐈";
-  if (p.includes("toad") || p.includes("frog")) return "🐸";
-  if (p.includes("rat") || p.includes("mouse")) return "🐀";
-  if (p.includes("snake") || p.includes("serpent")) return "🐍";
-  if (p.includes("rabbit") || p.includes("bunny")) return "🐇";
-  return "🦉";
-}
+import { petEmoji } from "@/lib/utils";
 
 interface InventoryPanelProps {
   gameState: GameState;

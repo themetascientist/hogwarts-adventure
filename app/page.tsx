@@ -16,19 +16,9 @@ import CharacterSelect from "@/components/CharacterSelect";
 import ChatArea, { ChatMessage } from "@/components/ChatArea";
 import ConversationLoop from "@/components/ConversationLoop";
 import InventoryPanel from "@/components/InventoryPanel";
+import { petEmoji, fetchWithTimeout } from "@/lib/utils";
 
 const SAVE_KEY = "hogwarts-adventure-save";
-
-function petEmoji(pet: string | null): string {
-  if (!pet) return "🦉";
-  const p = pet.toLowerCase();
-  if (p.includes("cat") || p.includes("kitten")) return "🐈";
-  if (p.includes("toad") || p.includes("frog")) return "🐸";
-  if (p.includes("rat") || p.includes("mouse")) return "🐀";
-  if (p.includes("snake") || p.includes("serpent")) return "🐍";
-  if (p.includes("rabbit") || p.includes("bunny")) return "🐇";
-  return "🦉";
-}
 
 function saveGame(state: GameState) {
   try {
@@ -164,17 +154,21 @@ export default function Home() {
       setIsLoading(true);
 
       try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: text.trim(),
-            characterId: charId,
-            locationId: gs.locationId,
-            history: prevMessages,
-            gameState: gs,
-          }),
-        });
+        const res = await fetchWithTimeout(
+          "/api/chat",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: text.trim(),
+              characterId: charId,
+              locationId: gs.locationId,
+              history: prevMessages,
+              gameState: gs,
+            }),
+          },
+          30000
+        );
         const data = await res.json();
 
         if (data.error) {
@@ -308,35 +302,40 @@ export default function Home() {
 
       if (result) {
         // Try to play greeting via TTS
+        let url: string | null = null;
         try {
-          const audioRes = await fetch("/api/text-to-speech", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: result.response, voiceId: result.voiceId }),
-          });
+          const audioRes = await fetchWithTimeout(
+            "/api/text-to-speech",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: result.response, voiceId: result.voiceId }),
+            },
+            20000
+          );
           if (audioRes.ok) {
             const blob = await audioRes.blob();
-            const url = URL.createObjectURL(blob);
+            url = URL.createObjectURL(blob);
             const audio = new Audio(url);
             greetingAudioRef.current = audio;
-            audio.onended = () => {
-              URL.revokeObjectURL(url);
+            const cleanup = () => {
+              if (url) URL.revokeObjectURL(url);
+              url = null;
               greetingAudioRef.current = null;
               if (features.hasWhisper) setVoiceMode(true);
             };
-            audio.onerror = () => {
-              URL.revokeObjectURL(url);
-              greetingAudioRef.current = null;
-              if (features.hasWhisper) setVoiceMode(true);
-            };
-            await audio.play().catch(() => {
-              URL.revokeObjectURL(url);
-              greetingAudioRef.current = null;
-              if (features.hasWhisper) setVoiceMode(true);
-            });
+            audio.onended = cleanup;
+            audio.onerror = cleanup;
+            await audio.play().catch(cleanup);
             return; // Wait for greeting to finish before voice mode
+          } else {
+            // TTS request returned error — revoke any URL we made
+            if (url) URL.revokeObjectURL(url);
           }
-        } catch {}
+        } catch (err) {
+          console.error("Greeting TTS error:", err);
+          if (url) URL.revokeObjectURL(url);
+        }
         // TTS failed — fall through to voice mode
       }
     }

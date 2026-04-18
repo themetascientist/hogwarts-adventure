@@ -3,6 +3,7 @@ import { getCharacter } from "@/lib/characters";
 import { getLocation } from "@/lib/locations";
 import { NextRequest, NextResponse } from "next/server";
 import { GameState, ALL_CLUES } from "@/lib/game-state";
+import { sanitizeName } from "@/lib/utils";
 
 const anthropic = new Anthropic();
 
@@ -94,7 +95,16 @@ export async function POST(request: NextRequest) {
     ? `You are currently in: ${location.name}. ${location.description}`
     : "";
 
-  const gameContext = gameState ? buildGameContext(gameState) : "";
+  // Sanitize user-supplied names before interpolating them into the system
+  // prompt so a player can't inject fake tags ([ITEM:...], [SORT:...], [CLUE:...])
+  // that would corrupt game state.
+  const playerName = sanitizeName(gameState?.playerName || "player");
+  const friendName = sanitizeName(gameState?.friendName || "friend");
+  const safeState: GameState | null = gameState
+    ? { ...gameState, playerName, friendName }
+    : null;
+
+  const gameContext = safeState ? buildGameContext(safeState) : "";
 
   const systemPrompt = `${character.systemPrompt}
 
@@ -102,15 +112,15 @@ ${locationContext}
 
 ${gameContext}
 
-IMPORTANT: Two players (${gameState?.playerName || "player"} and ${gameState?.friendName || "friend"}) are playing together. When you give a student an item, include the item tag at the END of your response. The tag will be stripped before speaking. You MUST specify which student receives the item by name.
+IMPORTANT: Two players (${playerName} and ${friendName}) are playing together. When you give a student an item, include the item tag at the END of your response. The tag will be stripped before speaking. You MUST specify which student receives the item by name.
 Format: [ITEM:type:recipient:description]
-- [ITEM:wand:${gameState?.playerName || "player"}:Holly and phoenix feather, 11 inches]
-- [ITEM:pet:${gameState?.friendName || "friend"}:Snowy owl named Artemis]
-- [ITEM:books:${gameState?.playerName || "player"}:Standard first-year textbooks]
-- [ITEM:food:${gameState?.friendName || "friend"}:Chocolate frogs and pumpkin pasties]
+- [ITEM:wand:${playerName}:Holly and phoenix feather, 11 inches]
+- [ITEM:pet:${friendName}:Snowy owl named Artemis]
+- [ITEM:books:${playerName}:Standard first-year textbooks]
+- [ITEM:food:${friendName}:Chocolate frogs and pumpkin pasties]
 Only include the tag when the item is actually being given/sold/chosen, not when just discussing it. Pay attention to which student is speaking or being addressed.
 
-When sorting a student into a house, include: [SORT:recipient:house] e.g. [SORT:${gameState?.playerName || "player"}:Gryffindor]
+When sorting a student into a house, include: [SORT:recipient:house] e.g. [SORT:${playerName}:Gryffindor]
 Sort each student individually based on the conversation. Both students must be sorted.
 
 ${VOICE_INSTRUCTIONS}`;

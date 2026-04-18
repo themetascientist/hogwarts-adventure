@@ -108,11 +108,13 @@ export function advanceChapter(state: GameState): GameState {
   const nextChapter = CHAPTER_ORDER[idx + 1];
   const nextLocation = getStartingLocation(nextChapter);
 
+  // Preserve chatHistory across chapters. Character continuity matters —
+  // Hagrid and McGonagall appear in multiple chapters and should remember
+  // the student across the arc. Save/load relies on this too.
   return {
     ...state,
     chapter: nextChapter,
     locationId: nextLocation,
-    chatHistory: {}, // fresh conversations for new chapter
   };
 }
 
